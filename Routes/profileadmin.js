@@ -123,22 +123,25 @@ async function clg(id) {
 
 exports.admin = async(req,res) => {
         const user = await profileID(req);
+        if(!user) {
+            return res.json({status:"User not found"})
+        }
         const exam = await profileData();
         const scoreboard = new Array();
-    const student_list = await User.find({}).sort('-OAScore');
+    const student_list = await User.find({});
     let i = 0;
     for( const stud of student_list) {
         if(i==10)
             break;
-        const department = await dept(stud.department)
+        const department = await dept(stud?.department)
         scoreboard.push({
-            name: stud.name,
-            college: await clg(stud.college),
-            department: department.department,
-            year: department.year,
-            semester: department.semester,
-            section: department.section,
-            score: stud.OAScore
+            name: stud?.name,
+            college: await clg(stud?.college),
+            department: department?.department,
+            year: department?.year,
+            semester: department?.semester,
+            section: department?.section,
+            score: stud?.OAScore
         })
         i++;
     }
@@ -147,22 +150,25 @@ exports.admin = async(req,res) => {
 
 exports.superadmin = async(req,res) => {
         const user = await profileID(req);
+        if(!user) {
+            return res.json({status:"User not found"})
+        }
         const exam = await profileDataSA(user.college);
         const scoreboard = new Array();
-    const student_list = await User.find({college:user.college}).sort('-OAScore');
+    const student_list = await User.find({college:user.college});
     let i = 0;
     for( const stud of student_list) {
         if(i==10)
             break;
-        const department = await dept(stud.department)
+        const department = await dept(stud?.department)
         scoreboard.push({
-            name: stud.name,
-            college: await clg(stud.college),
-            department: department.department,
-            year: department.year,
-            semester: department.semester,
-            section: department.section,
-            score: stud.OAScore
+            name: stud?.name,
+            college: await clg(stud?.college),
+            department: department?.department,
+            year: department?.year,
+            semester: department?.semester,
+            section: department?.section,
+            score: stud?.OAScore
         })
         i++;
     }

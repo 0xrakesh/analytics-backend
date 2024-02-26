@@ -11,6 +11,7 @@ const C = require("./c")
 const Java = require("./java")
 
 /*
+Not in use
 Add a new question
 - Create a new question for the particular department of the college.
 - Create a question set for coding part exam.
@@ -40,6 +41,7 @@ exports.add = async (questions, id) => {
 
 
 /*
+Not in use
 - Get all the coding questions, which were created by the admin.
 - Return all the questions to the function.
 */
@@ -50,11 +52,11 @@ exports.displayAdmin = async() => {
 
 
 /*
+Old feature
 - Get the coding questions of the specify examID, which were created by the admin.
 - Return all the questions to the function.
 */
 exports.display = async (examID,user) => {
-    console.log(user);
     var compl;
     const questions = await Program.find({examID:examID},{_id:0,__v:0});
     return questions;

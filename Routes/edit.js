@@ -58,7 +58,6 @@ exports.exam = async(req,res) => {
 exports.section = async(req,res) => {
     const {sectionID} = req.params;
     const section = await Section.findOne({_id:sectionID});
-    console.log(section);
     let overDuration = 0;
     let overAllPoint = 0;
     const {name,category,hours,minutes,questions} = req.body;
@@ -121,7 +120,6 @@ exports.user = async(req,res) => {
     }
     var { name,email,password, rollno,imageData } = req.body;
     var uniqueFilename = '';
-    console.log(req.body);
     if(imageData){
         const imageBuffer = Buffer.from(imageData, 'base64');
         uniqueFilename = `${Date.now()}_${Math.floor(Math.random() * 1000)}.png`;
@@ -157,12 +155,15 @@ exports.department = async(req,res) => {
     const {departmentID} = req.params;
 
     const {department, year, semester, section } = req.body;
-
+    const dept = await Department.findOne({_id:departmentID}).catch(() => {return res.json({status:"Invalid Department ID"})});
+    if(!dept) {
+        return res.json({status:"Invalid Department ID"})
+    }
     const updateDepartment = {
-        department: department,
-        year: year,
-        semester: semester,
-        section: section,
+        department: department? department : dept.department,
+        year: year ? year : dept.year,
+        semester: semester?semester:dept.semester,
+        section: section?section:dept.section,
     }
 
     try {
@@ -183,10 +184,13 @@ exports.college = async(req,res) => {
     const {collegeID} = req.params;
 
     const { college, place } = req.body;
-
+    const clg = await College.findOne({_id:collegeID}).catch(() => {return res.json({status:"Invalid College ID"})});
+    if(!clg) {
+        return res.json({status:"Invalid Department ID"})
+    }
     const updateCollege = {
-        college: college,
-        place: place,
+        college: college?college:clg.college,
+        place: place?place:clg.place,
     }
 
     try {

@@ -42,8 +42,13 @@ exports.addDept = async (req,res) => {
 exports.department = async (req,res) => {
     const {college} = req.params;
     const collegeName = await CollegeDB.findOne({_id:college})
-    const collegesArray = await Department.find({college:college},{college:0});
-    return res.json({college:collegeName.college, departments: collegesArray})
+    if(!collegeName) {
+        return res.json({college:"Not exist"})
+    }
+    else {
+        const collegesArray = await Department.find({college:college},{college:0});
+        return res.json({college:collegeName.college, departments: collegesArray})
+    }
 }
 
 
@@ -55,11 +60,13 @@ exports.student = async (req, res) => {
     const { college, department } = req.params;
     const collegeName = await CollegeDB.findOne({_id:college});
     const DepartmentDetail = await Department.findOne({_id:department});
+    if(!collegeName){
+        return res.json({college:"Not exit"})
+    }
+    if(!DepartmentDetail){
+        return res.json({department:"Not exist"})
+    }
     const students = await Student.find({ college: college, department: department }, { __v: 0, username: 0, password: 0, role: 0,image:0 }).sort({ name: 'asc' });
-  
-    var studentList = [];
-  
-
   
     return res.json({ college: collegeName.college, department: DepartmentDetail.department, year: DepartmentDetail.year,semester: DepartmentDetail.semester, section: DepartmentDetail.section, students: students });
   };
@@ -74,13 +81,12 @@ exports.student = async (req, res) => {
 exports.new = async (req,res) => {
     const {college,place} = req.body;
     var clg = await CollegeDB.findOne({college:college})
-    console.log(clg);
     if(clg){
         return res.json({response:"Already exist"})
     }
     CollegeDB.create({
-	_id:new mongoose.Types.ObjectId(), 
-       college: college,
+	    _id:new mongoose.Types.ObjectId(), 
+        college: college,
         place: place,
     })
     .then((data) => {return res.json({response:"done"})})

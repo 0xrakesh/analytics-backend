@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const url = "mongodb+srv://0xrakesh:gokutheultra@backendandapi.0qxmuxd.mongodb.net/";
+const url = "mongodb://127.0.0.1:27017/analytics";
 
 const options = {useNewUrlParser: true, useUnifiedTopology: true}
 /*

@@ -6,7 +6,7 @@ const fs = require("fs")
 // Websocket API
 exports.dashboard = async () => {
     const event = await Techevent.find({},{_id:0,__v:0,username:0,college:0,department:0,year:0,semester:0,section:0})
-    return event;
+    return res.json({event:event});
 }
 
 // Event 

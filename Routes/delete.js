@@ -58,10 +58,10 @@ exports.department = async(req,res) => {
     .catch(() => {return res.json({status:"Invalid Department ID."})})
 
     // Delete the college
-    await Student.deleteMany({department: departmentID});
+    await Student.deleteMany({department: departmentID}).catch(() => {return res.json({status:"Invalid department ID"})});
 
     // Delete the exam
-    await Exam.deleteMany({department: departmentID});
+    await Exam.deleteMany({department: departmentID}).catch(() => {return res.json({status:"Invalid Department ID"})});
 
     return res.json({status:"Department deleted"});
 
@@ -80,11 +80,11 @@ exports.college = async(req,res) => {
     await College.findOneAndDelete({_id:collegeID})
     .catch(() => {return res.json({status:"Invalid College ID."})})
 
-    await Department.findOneAndDelete({college:collegeID});
+    await Department.findOneAndDelete({college:collegeID}).catch(() => {return res.json({status:"Invalid College ID"})});
 
-    await Student.deleteMany({college:collegeID});
+    await Student.deleteMany({college:collegeID}).catch(() => {return res.json({status:"Invalid College ID"})});
 
-    await Exam.deleteMany({college:collegeID});
+    await Exam.deleteMany({college:collegeID}).catch(() => {return res.json({status:"Invalid College ID"})});
 
     return res.json({status:"College deleted"});
 }

@@ -14,7 +14,7 @@ async function profileID(authHeader)  {
     }
     try{
         var user = jwt.verify(token,secret);
-        return user.id
+        return user?.id
     }
     catch{
         return null;
@@ -35,9 +35,9 @@ exports.training = async(req,res) => {
 	const userID = await profileID(token);
 	const user = await profile(userID);
 	return res.json({
-		id: user._id,
-		user: user.username,
-		training: user.training,
+		id: user?._id,
+		user: user?.username,
+		training: user?.training,
 		questions:questions
 	});
 }
@@ -60,7 +60,7 @@ exports.evaluate = async (req,res) => {
     const userID = await profileID(req.headers.authorization);
     const user = await profile(userID);
 
-    for( const comp of user.training) {
+    for( const comp of user?.training) {
         if( comp == questions.id) {
             return res.json({status:"Already taken this exam"});
         }
@@ -116,8 +116,7 @@ exports.evaluate = async (req,res) => {
         const compl = {
             number: questions.number
         }
-
-	return res.json(successResult);
+    	return res.json(successResult);
 
 }
 
@@ -141,8 +140,8 @@ exports.submit = async (req,res) => {
     const userID = await profileID(req.headers.authorization);
     const user = await profile(userID);
 
-    for( const comp of user.completion) {
-        if( comp == questions.id) {
+    for( const comp of user?.completion) {
+        if( comp == questions?.id) {
             return res.json({status:"Already taken this exam"});
         }
     }
@@ -196,9 +195,9 @@ exports.submit = async (req,res) => {
             output: result[0].output,
         }
 
-        const score = (await Training.findOne({_id:questions.id})).rating;
+        const score = (await Training.findOne({_id:questions?.id})).rating;
         const compl = questions.id;
-        await CodeDB.findOneAndUpdate({ _id: questions.id, number: questions.number }, { $inc: { submission: 1 } }).then(()=>console.log("User qn updated"));
+        await CodeDB.findOneAndUpdate({ _id: questions?.id, number: questions?.number }, { $inc: { submission: 1 } }).then(()=>console.log("User qn updated"));
         await Student.findOneAndUpdate({_id:userID},{
             $push: {training: compl},
             $inc: {OAScore: score}

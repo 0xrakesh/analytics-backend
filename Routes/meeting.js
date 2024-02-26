@@ -51,15 +51,15 @@ exports.admin = async(req,res) => {
 	const department = await depart(a.department);
 	const college = await clg(a.college);
 	meet.push({
-		_id: a._id,
-		title: a.title,
-		date: a.date,
-		link: a.link,
+		_id: a?._id,
+		title: a?.title,
+		date: a?.date,
+		link: a?.link,
 		college: college,
-		department: department.department,
-		year: department.year,
-		section: department.section,
-		semester: department.semester
+		department: department?.department,
+		year: department?.year,
+		section: department?.section,
+		semester: department?.semester
 	})
     }
     return res.json({meeting: meet});
@@ -88,15 +88,15 @@ exports.superadmin = async(req,res) => {
         const department = await depart(a.department);
         const college = await clg(a.college);
         meet.push({
-                _id: a._id,
-                title: a.title,
-                date: a.date,
-                link: a.link,
-                college: college,
-                department: department.department,
-                year: department.year,
-                section: department.section,
-                semester: department.semester
+                _id: a?._id,
+                title: a?.title,
+                date: a?.date,
+                link: a?.link,
+                college: college?.college,
+                department: department?.department,
+                year: department?.year,
+                section: department?.section,
+                semester: department?.semester
         })
     }
 
@@ -173,7 +173,7 @@ exports.newSuperAdmin = async(req,res) => {
         date: date,
         timing: timing,
         link: link,
-        college: user.college,
+        college: user?.college,
         department: department,
     })
 

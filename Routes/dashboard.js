@@ -49,7 +49,12 @@ exports.student = async (req,res) => {
 
     const college = await College.findOne({ _id: person.college });
     const department = await Department.findOne({ _id: person.department });
-
+    if(!college) {
+        return res.json({college:"Not exist"})
+    }
+    if(!department) {
+        return res.json({department:"Not exist"})
+    }
     const performance = await Performance.find({studentid:person._id})
     var numberOfExams = performance.length;
     var numberOfSection = 0;
@@ -112,7 +117,12 @@ exports.studentDetail = async (req,res) => {
         }
         const college = await College.findOne({ _id: person.college });
         const department = await Department.findOne({ _id: person.department });
-
+        if(!college) {
+            return res.json({college:"Not exist"})
+        }
+        if(!department) {
+            return res.json({department:"Not exist"})
+        }
         const performance = await Performance.find({studentid:person._id})
         var numberOfExams = performance.length;
         var numberOfSection = 0;

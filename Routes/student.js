@@ -24,6 +24,7 @@ const Rank = require("../Schema/ranking.js")
 const Python = require("./python");
 const C = require("./c")
 const Java = require("./java");
+const Score = require("../Schema/scores.js");
 
 async function profileID(authHeader)  {
     var token;
@@ -86,7 +87,9 @@ function formatDateWithMonthAndTime(inputDateTime) {
  
 async function profileData(id,clg,dept) {
 	const exams = await Exam.find({college:clg,department:dept});
-	console.log(exams);
+    if(!exams || exams.length === 0) {
+        return res.json({exams:"No exam found"})
+    }
 	var upcomingM =0 ,upcomingC = 0;
 	var ongoingM=0,ongoingC =0 ;
 	var endM=0,endC=0;
@@ -95,7 +98,7 @@ async function profileData(id,clg,dept) {
 	var code= new Array();
 	var perc = 0;
 	for(const exam of exams) {
-		const status = await getTimeStatus(exam.start,exam.end);
+		const status = getTimeStatus(exam.start,exam.end);
 		if(status=="upcoming") {
 			exam.exam === "Coding" ? upcomingC++ : upcomingM++;
 		}
@@ -146,6 +149,9 @@ async function profileData(id,clg,dept) {
 	return data;
 }
 
+/*
+[Not in use, old feature]
+*/
 async function examAttend(user,exam,examID) {
     if(exam == 'MCQ') {
         const compl = user.completion;
@@ -179,11 +185,14 @@ async function examAttend(user,exam,examID) {
 async function UpdateScoreBoard(student,examID,sectionID,category,overall,obtain) {
     const dept = await Department.findOne({_id:student.department});
     const colg = await College.findOne({_id:student.college})
-
-    console.log('update')
+    if(!colg) {
+        return res.json({status:"College ID not found"})
+    }
+    if(!dept) {
+        return res.json({status:"Department ID not found"})
+    }
     const existSB = await ScoreBoard.findOne({studentid:student._id});
     if(!existSB) {
-        console.log("Already")
         const scoreboard = await ScoreBoard({
             studentid: student._id,
             studentName: student.name,
@@ -204,7 +213,7 @@ async function UpdateScoreBoard(student,examID,sectionID,category,overall,obtain
             scores: obtain
         });
     
-        await scoreboard.save()
+        await scoreboard.save().catch(() => {return res.json({status:"Something went wrong on save the scoreboard. Line 215"})})
     
         let average = (obtain/overall)*100
         let rankPos = average >= 80 ? "Developer+" : (average <80 && average>=60) ? "Developer" : (average <60 && average>=40) ? "Dev" : "Junior dev"
@@ -221,16 +230,15 @@ async function UpdateScoreBoard(student,examID,sectionID,category,overall,obtain
             rank: rankPos
         });
 
-        ranking.save()
+        ranking.save().catch(() => {return res.json({status:"Something went wrong on save the ranking document"})})
     }
 
     else {
         await ScoreBoard.findOneAndUpdate({studentid:student._id},{$push: {exams:{examid:examID,sectionID:sectionID,category:category,overall:overall,obtain:obtain}}, $inc: {scores:obtain}});
-        
         const rankSt = await Rank.findOne({studentid:student._id});
 
-        let existObt = rankSt.obtain;
-        let existOve = rankSt.overall;
+        let existObt = rankSt?.obtain;
+        let existOve = rankSt?.overall;
 
         let average = ((existObt + obtain)/ (existOve+overall))*100;
         let rankPos = average >= 80 ? "Developer+" : (average <80 && average>=60) ? "Developer" : (average <60 && average>=40) ? "Dev" : "Junior dev"
@@ -253,18 +261,18 @@ exports.profileImage = async(req,res) => {
     const userID = await profileID(req.headers.authorization);
     const user = await profile(userID);
     return res.json({
-        image: user.image
+        image: user?.image
     })
 }
 
 exports.profile = async(req,res) => {
     const userID = await profileID(req.headers.authorization);
     const user = await profile(userID);
-    const clg = await college(user.college);
-    const dept = await department(user.department);
+    const clg = await college(user?.college);
+    const dept = await department(user?.department);
 
     if(!dept || !clg )
-	return res.json({status:"College and department of the student deleted"});
+	    return res.json({status:"College and department of the student deleted"});
 
     return res.json({
         name: user.name,
@@ -284,30 +292,30 @@ exports.profile = async(req,res) => {
 exports.exam = async (req, res) => {
     const userID = await profileID(req.headers.authorization);
     const user = await profile(userID);
-    const clg = await college(user.college);
-    const dept = await department(user.department);
+    const clg = await college(user?.college);
+    const dept = await department(user?.department);
   
-    const exams = await Exam.find({ college: user.college, department: user.department }, {__v:0});
+    const exams = await Exam.find({ college: user?.college, department: user?.department }, {__v:0});
     const examList = await Promise.all(exams.map(async (exam) => {
-      const start = exam.start;
-      const end = exam.end;
-    //   const examtiming = await timerStatus(exam.id,userID,exam.hours,exam.minutes);
+      const start = exam?.start;
+      const end = exam?.end;
+      
       var status = getTimeStatus(start, end);
       const date = formatDateWithMonthAndTime(exam.date).split(',');
       const startTime = formatDateTime(start);
       const endTime = formatDateTime(end);
-      const Attended = await Performance.findOne({studentid:userID,examid:exam._id})
+      const Attended = await Performance.findOne({studentid:userID,examid:exam?._id})
       var status;
       return {
-        _id: exam._id,
-        title: exam.title,
+        _id: exam?._id,
+        title: exam?.title,
         status: status,
         date: date[0],
         start: startTime,
         end: endTime,
-	    duration: exam.duration,
-        category: exam.exam,
-        sections: (exam.sections).length,
+	    duration: exam?.duration,
+        category: exam?.exam,
+        sections: (exam?.sections).length,
         attendStatus: status,
       };
     }));
@@ -331,29 +339,29 @@ exports.examDetail = async (req,res) => {
     const question = await Promise.all(
         (exam.sections).map(async (section) => {
             const sec = await Section.findOne({_id:section},{'questions.answer':0});
-            var timerExist = await Timer.findOne({examid:examID,sectionid:sec._id,studentid:userID});
+            var timerExist = await Timer.findOne({examid:examID,sectionid:sec?._id,studentid:userID});
             if(timerExist) {
-                sec.timeLeft = ((new Date().getTime() - new Date(timerExist.startTime).getTime()) / 60000); 
+                sec.timeLeft = ((new Date().getTime() - new Date(timerExist?.startTime).getTime()) / 60000); 
                 return sec;
             }
             return sec;
         })
     )
-    const college = await College.findOne({_id:exam.college});
-    const department = await Department.findOne({_id:exam.department})
+    const college = await College.findOne({_id:exam?.college});
+    const department = await Department.findOne({_id:exam?.department})
 
     return res.json({
         title:exam.title,
         college: college.college,
-        department: department.department,
-        year: department.year,
-        semester: department.semester,
-        section: department.section,
+        department: department?.department,
+        year: department?.year,
+        semester: department?.semester,
+        section: department?.section,
         date: formatDateWithMonthAndTime(exam.date).split(',')[0],
-        start: formatDateTime(exam.start),
-        end: formatDateTime(exam.end),
-        status:getTimeStatus(exam.start,exam.end),
-	    category: exam.exam,
+        start: formatDateTime(exam?.start),
+        end: formatDateTime(exam?.end),
+        status:getTimeStatus(exam?.start,exam?.end),
+	    category: exam?.exam,
         sections: question,
         update:"Remaining timing will be update soon"
     });
@@ -375,6 +383,9 @@ exports.examStart = async (req,res) => {
     }
     const userID = await profileID(req.headers.authorization);
     const user = await profile(userID);
+    if(!user) {
+        return res.json({status:"User not found"})
+    }
     const loginAct = await Activity.findOne({user_id:user._id})
 
     if(!loginAct) {
@@ -394,11 +405,11 @@ exports.examStart = async (req,res) => {
                 examid: examID,
                 sectionid: sectionID,
                 startTime: new Date().getTime(),
-                time: section.time
+                time: section?.time
             }) 
             timer.save().then((doc) => {timerExist = doc});
             if(section.category === "mcq") {
-                return res.json({section: section, exam: exam, timing:section.time})
+                return res.json({section: section, exam: exam, timing:section?.time})
             }
             else {
                 if(Attended && (Attended.category === "coding" || Attended.category === "both")) {
@@ -409,7 +420,7 @@ exports.examStart = async (req,res) => {
                     var questions = sec.questions;
                     var qns = section.questions;
                     for(let qn of qns ) {
-                        if(!questions.includes(qn.number)) {
+                        if(!questions.includes(qn?.number)) {
                             questionsArray.push(qn)
                         }
                     }
@@ -423,10 +434,10 @@ exports.examStart = async (req,res) => {
                         time: section.time,
                         questions: questionsArray,
                     }
-                    return res.json({section: sectionJson, exam: exam, timing:section.time})
+                    return res.json({section: sectionJson, exam: exam, timing:section?.time})
                 }
                 else {
-                    return res.json({section: section, exam: exam, timing:section.time})
+                    return res.json({section: section, exam: exam, timing:section?.time})
                 }
             }
         }
@@ -440,8 +451,8 @@ exports.examStart = async (req,res) => {
                     var attendedSection = Attended.sections;
                     for(let sect of attendedSection) {
                         let sec = await Scoring.findOne({_id:sect,category: 'coding', sectionid: sectionID})
-                        var questions = sec.questions;
-                        var qns = section.questions;
+                        var questions = sec?.questions;
+                        var qns = section?.questions;
                         for(let qn of qns ) {
                             if(!questions.includes(qn.number)) {
                                 questionsArray.push(qn)
@@ -452,9 +463,9 @@ exports.examStart = async (req,res) => {
                     
                     const sectionJson = {
                         _id: sectionID,
-                        name: section.name,
-                        category: section.category,
-                        time: section.time,
+                        name: section?.name,
+                        category: section?.category,
+                        time: section?.time,
                         questions: questionsArray,
                     }
                     return res.json({section: sectionJson, exam: exam, timing:parseInt((new Date().getTime() - new Date(timerExist.startTime).getTime()) / 60000)})

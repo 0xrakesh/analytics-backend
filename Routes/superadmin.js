@@ -13,16 +13,13 @@ const Event = require("../Schema/techevent")
 const Performance = require("../Schema/performance")
 const Student = require("../Schema/user")
 const Admin = require("../Schema/admin")
-// Routes
-const MCQ = require("./mcqs")
-const Code = require("./CodingQN")
 const Section = require('../Schema/sections');
 
 async function profileID(token) {
     var tok = token.headers.authorization;
     var id;
     try {
-        tok = tok.slice(7,tok.length)
+        tok = tok.slice(7,tok?.length)
         id = jwt.verify(tok, secret);
     }
     catch(err) {
@@ -104,20 +101,20 @@ async function scoreof(examID, students) {
         const performance = await Performance.findOne({examid:examID,studentid:student})
         if(!performance) {
             studentDetail.push({
-                _id: student._id,
-                name: student.name,
-                rollno:student.rollno,
-                username:student.username,
+                _id: student?._id,
+                name: student?.name,
+                rollno:student?.rollno,
+                username:student?.username,
                 obtainpoint: 0,
             })
         }
         else {
             studentDetail.push({
-                _id: student._id,
-                name: student.name,
-                rollno:student.rollno,
-                username:student.username,
-                obtainpoint: performance.obtainpoint,
+                _id: student?._id,
+                name: student?.name,
+                rollno:student?.rollno,
+                username:student?.username,
+                obtainpoint: performance?.obtainpoint,
             })
         }
     }
@@ -144,25 +141,24 @@ exports.exam = async(req,res) => {
                 examList.push({
                     _id: exam.id,
                     title: exam.title,
-                    college: college.college,
-                    department: departmentData.department,
-                    year: departmentData.year,
-                    semester: departmentData.semester,
-                    section: departmentData.section,
+                    college: college?.college,
+                    department: departmentData?.department,
+                    year: departmentData?.year,
+                    semester: departmentData?.semester,
+                    section: departmentData?.section,
                     date: formatDateWithMonthAndTime(exam.date).split(',')[0],
                     start: formatDateTime(exam.start),
                     end: formatDateTime(exam.end),
-                    category: exam.category,
-                    duation: exam.duration,
-                    sections: (exam.sections).length,
-                    status: getTimeStatus(exam.start,exam.end),
+                    category: exam?.category,
+                    duation: exam?.duration,
+                    sections: (exam?.sections).length,
+                    status: getTimeStatus(exam?.start,exam?.end),
                 })
             }
         }
         return res.json({exams:examList})
     }
     catch(err) {
-        console.log(err)
         return res.json({exams: "Error",err:err})
     }
 }
@@ -173,24 +169,24 @@ exports.examDetail = async (req,res) => {
     if(!exam) {
         return res.json({status:"Not found"})
     }
-    const college = await College.findOne({_id:exam.college});
-    const department = await Department.findOne({_id:exam.department})
+    const college = await College.findOne({_id:exam?.college});
+    const department = await Department.findOne({_id:exam?.department})
 
-    const students = await Student.find({ college: exam.college, department: exam.department }, { __v: 0,department:0,college:0, username: 0, password: 0, role: 0,image:0 }).sort({ name: 'asc' });
+    const students = await Student.find({ college: exam?.college, department: exam?.department }, { __v: 0,department:0,college:0, username: 0, password: 0, role: 0,image:0 }).sort({ name: 'asc' });
     const student = await scoreof(examID, students);
 
     return res.json({
-        title:exam.title,
-        college: college.college,
-        department: department.department,
-        year: department.year,
-        semester: department.semester,
-        section: department.section,
-        date: formatDateWithMonthAndTime(exam.date).split(',')[0],
-        start: formatDateTime(exam.start),
-        end: formatDateTime(exam.end),
-        status:getTimeStatus(exam.start,exam.end),
-	    category: exam.exam,
+        title:exam?.title,
+        college: college?.college,
+        department: department?.department,
+        year: department?.year,
+        semester: department?.semester,
+        section: department?.section,
+        date: formatDateWithMonthAndTime(exam?.date).split(',')[0],
+        start: formatDateTime(exam?.start),
+        end: formatDateTime(exam?.end),
+        status:getTimeStatus(exam?.start,exam?.end),
+	    category: exam?.exam,
         students: student,
         point:exam.overallRating
     });
@@ -218,19 +214,19 @@ exports.newExam = async (req,res) => {
             // Calculate the score
             if(category==="mcq"){
                 for(let question of questions) {
-                    overAllPoint+= question.rating;
+                    overAllPoint+= question?.rating;
                 }
             }
             else {
                 for(let question of questions) {
                     // Output
-                    for(let out of question.output) {
-                        overAllPoint += out.rating
+                    for(let out of question?.output) {
+                        overAllPoint += out?.rating
                     }
     
                     // Testcase
-                    for(let test of question.testcase) {
-                        overAllPoint += test.rating
+                    for(let test of question?.testcase) {
+                        overAllPoint += test?.rating
                     }
                 }
             }
@@ -254,7 +250,7 @@ exports.newExam = async (req,res) => {
         start: start,
         end: end,
         duration: overDuration,
-        sections: sectionsID.map((section) => section._id),
+        sections: sectionsID.map((section) => section?._id),
         department: department,
         college: user.college,
         overallRating: overAllPoint
@@ -280,7 +276,7 @@ exports.newDept = async(req,res) => {
         return res.json({status:"Already exist"})
     }
     const clg = await Department({
-        college: user.college,
+        college: user?.college,
         department: department,
         year: year,
         semester: semester,
@@ -298,7 +294,7 @@ exports.newDept = async(req,res) => {
 */
 exports.dept = async(req,res) => {
     const user = await profileID(req);
-    const college = await user.college;
+    const college = await user?.college;
     const department = await Department.find({college: college});
     return res.json({department: department});
 }
@@ -314,7 +310,10 @@ exports.delDept = async(req,res) => {
 */
 exports.student = async(req,res) => {
     const user = await profileID(req);
-    const college = user.college;
+    if(!user) {
+        return res.json({status:"User not found."})
+    }
+    const college = user?.college;
     const department = req.params.departmentID;
     const student = await Student.find({college: college, department: department});
     const stu = new Array();
@@ -322,12 +321,12 @@ exports.student = async(req,res) => {
     const dept = await Department.findOne({_id:department});
     for(const a of student) {
 	stu.push({
-		_id:a._id,
-		name:a.name,
-		username:a.username,
-		rollno:a.rollno,
-		email: a.email,
-		OAScore:a.OAScore
+		_id:a?._id,
+		name:a?.name,
+		username:a?.username,
+		rollno:a?.rollno,
+		email: a?.email,
+		OAScore:a?.OAScore
     })
    }
     return res.json({students:stu,college:clg.college,department:dept.department,year:dept.year,semester:dept.semester,section:dept.section})
@@ -408,11 +407,11 @@ exports.getSA = async(req,res) => {
     var user = new Array(); 
     for(const a of superadmin) {
         user.push({
-            _id: a._id,
-            college: (await CollegeName(a.college)).college,
-            name: a.name,
-            username: a.username,
-            email: a.email,
+            _id: a?._id,
+            college: (await CollegeName(a?.college)).college,
+            name: a?.name,
+            username: a?.username,
+            email: a?.email,
         })
     }
     return res.json({superadmins:user})
@@ -431,20 +430,19 @@ exports.delSAS = async(req,res) => {
 }
 
 exports.getDept = async(req,res) => {
-console.log("helo")
     const user = await profileID(req);
     const college = await user.college;
     const departmentID = req.params.departmentID
     const students = await User.find({college: college, department: departmentID});
     var student = new Array();
     for(const a of students) {
-        var b = await departmentName(a.department)
+        var b = await departmentName(a?.department)
         student.push({
-            name: a.name,
-            username: a.username,
-            rollno: a.enroll,
-            email: a.email,
-            college: (await CollegeName(a.college)).college,
+            name: a?.name,
+            username: a?.username,
+            rollno: a?.enroll,
+            email: a?.email,
+            college: (await CollegeName(a?.college)).college,
             department: b.department,
             year: b.year,
             semester: b.semester,

@@ -11,7 +11,7 @@ async function profileID(token) {
     tok = tok.substring(7)
     var id;
     try {
-        id = await jwt.verify(tok, secret);
+        id = jwt.verify(tok, secret);
     }
     catch(err) {
         id = null;
@@ -112,7 +112,7 @@ exports.superAdminVerification = async (req,res,next) => {
         var decode = jwt.verify(token,secret)
         var username = decode.username;
         const user = await SuperAdmin.findOne({username:username});
-	if(decode.role === 'superadmin')
+	    if(decode.role === 'superadmin')
             return next();
         else
             return res.status(401).send("Admin can only access this page.");
@@ -138,6 +138,9 @@ exports.login = async (req,res) => {
     var token;
     await Admin.findOne({username:username})
     .then(async (user) => {
+        if(!user) {
+            return res.status(301).json({response:"Invalid Credits"})
+        }
         if( await bcrypt.compare(password, user.password)) {
             var token = jwt.sign({
        		name: user.name,
@@ -149,10 +152,13 @@ exports.login = async (req,res) => {
         }
         else 
             return res.status(401).json({response:"Incorrect Password"});
-        })
+    })
     .catch(async (err) => {
         await SuperAdmin.findOne({username:username})
         .then( async (user) => {
+            if(!user) {
+                return res.status(301).json({response:"Invalid Credits"})
+            }
             if( await bcrypt.compare( password, user.password)) {
                 token = jwt.sign( {
                         id:user._id,
@@ -169,7 +175,6 @@ exports.login = async (req,res) => {
                 );
                 return res.json({token:token})
             }
-    
             else {
                 return res.status(301).send({response:"Incorrect Password"});
             }
@@ -237,7 +242,7 @@ exports.register = async (req,res) => {
     if(!role) {
         role = "";
     }
-    if(role=="student") {
+    if(role==="student") {
         user = new User( {
             name: name,
             username: username,
@@ -284,7 +289,9 @@ exports.register = async (req,res) => {
     .catch( (err) => res.status(301).send({response:"Something went wrong"}));
 }
 
-/*UPload*/
+/*UPload
+Not in use - Old feature, now not exist
+*/ 
 exports.registerUpload = async (req,res) => {
    const {users} = req.body;
    var exist = new Array();
