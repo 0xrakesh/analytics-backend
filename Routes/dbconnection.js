@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const url = "mongodb+srv://shell:1234@analytics.cayz4kx.mongodb.net/";
+const url = "mongodb+srv://shell:1234@analytics.cayz4kx.mongodb.net/analytics";
 
 const options = {useNewUrlParser: true, useUnifiedTopology: true}
 /*
