@@ -139,9 +139,72 @@ exports.login = async (req,res) => {
     await Admin.findOne({username:username})
     .then(async (user) => {
         if(!user) {
-            return res.status(301).json({response:"Invalid Credits"})
+            await SuperAdmin.findOne({username:username})
+            .then( async (user) => {
+                if(!user) {
+                    await User.findOne({username:username})
+                    .then( async (user) => {
+                        console.log(user)
+                        if(!user) {
+                            return res.status(301).json({response:"Invalid Credits"})
+                        }
+                        if( await bcrypt.compare( password, user.password)) {
+                            token = jwt.sign( {
+                                    id:user._id,
+                                    username:user.username,
+                                    name:user.name,
+                                    role: user.role,
+                                    rollno: user.rollno,
+                            },
+                            secret,
+                            {
+                                expiresIn: '72hr'
+                            }
+                            );
+                            const activity = await Activity.findOne({user_id:user._id});
+                            if(!activity) {
+                                const newActivity = Activity({
+                                    user_id: user._id,
+                                    ipaddress: req.ip,
+                                    userAgent: req.get("user-agent"),
+                                    date: new Date().getTime(),
+                                    expiryAt: new Date(Date.now() + 4*60*60*1000),
+                                });
+                                newActivity.save().then(() => {return res.json({token:token})}).catch((err) => {console.log(err); return})
+                            }
+                            else if(activity.ipaddress !== req.ip) {
+                                    return res.json({response:"Already login in different browser or place. Logout there to login here.",status:401})
+                    }
+                    return res.json({token:token});
+                }
+                        else {
+                            return res.status(301).send({response:"Incorrect Password"});
+                        }
+                    })
+                }
+                else if( await bcrypt.compare( password, user.password)) {
+                    token = jwt.sign( {
+                            id:user._id,
+                            username:user.username,
+                            name:user.name,
+                            role: user.role,
+                            college: user.college,
+                            rollno: user.rollno,
+                    },
+                    secret,
+                    {
+                        expiresIn: '72hr'
+                    }
+                    );
+                    return res.json({token:token})
+                }
+                else {
+                    return res.status(301).send({response:"Incorrect Password"});
+                }
+                }
+            )
         }
-        if( await bcrypt.compare(password, user.password)) {
+        else if( await bcrypt.compare(password, user.password)) {
             var token = jwt.sign({
        		name: user.name,
 	         username: user.username,
@@ -153,75 +216,7 @@ exports.login = async (req,res) => {
         else 
             return res.status(401).json({response:"Incorrect Password"});
     })
-    .catch(async (err) => {
-        await SuperAdmin.findOne({username:username})
-        .then( async (user) => {
-            if(!user) {
-                return res.status(301).json({response:"Invalid Credits"})
-            }
-            if( await bcrypt.compare( password, user.password)) {
-                token = jwt.sign( {
-                        id:user._id,
-                        username:user.username,
-			name:user.name,
-                        role: user.role,
-       			college: user.college,
-	                 rollno: user.rollno,
-                },
-                secret,
-                {
-                    expiresIn: '72hr'
-                }
-                );
-                return res.json({token:token})
-            }
-            else {
-                return res.status(301).send({response:"Incorrect Password"});
-            }
-        }
-        )
-        .catch( async() => {
-	     await User.findOne({username:username})
-            .then( async (user) => {
-                if(!user) {
-                    return res.status(301).json({response:"Invalid Credits"})
-                }
-                if( await bcrypt.compare( password, user.password)) {
-                    token = jwt.sign( {
-                            id:user._id,
-                            username:user.username,
-			                name:user.name,
-                            role: user.role,
-                            rollno: user.rollno,
-                    },
-                    secret,
-                    {
-                        expiresIn: '72hr'
-                    }
-                    );
-		            const activity = await Activity.findOne({user_id:user._id});
-                    if(!activity) {
-                        const newActivity = Activity({
-                            user_id: user._id,
-                            ipaddress: req.ip,
-                            userAgent: req.get("user-agent"),
-                            date: new Date().getTime(),
-                            expiryAt: new Date(Date.now() + 4*60*60*1000),
-			            });
-                        newActivity.save().then(() => {return res.json({token:token})}).catch((err) => {console.log(err); return})
-                    }
-                    else if(activity.ipaddress !== req.ip) {
-	                        return res.json({response:"Already login in different browser or place. Logout there to login here.",status:401})
-		    }
-		    return res.json({token:token});
-		}
-                else {
-                    return res.status(301).send({response:"Incorrect Password"});
-                }
-            })
-            .catch( (err) => res.status(401).send(err))
-            });
-        })
+
 }
 
 
