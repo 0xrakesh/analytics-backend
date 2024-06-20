@@ -18,7 +18,6 @@ async function userID(authHeader)  {
         return null;
     }
 }
-
 /*
 Execute the coding question.
 - Identify the user detail with the token, which have the user id.

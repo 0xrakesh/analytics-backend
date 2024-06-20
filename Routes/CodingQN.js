@@ -30,6 +30,7 @@ exports.add = async (questions, id) => {
             outputDescription: element.outputDescription,
             io: element.io,
             testcase: element.testcase,
+            testcaseDescription: element.testcaseDescription,
             submission: 0
         });
         qn.save()
@@ -38,8 +39,6 @@ exports.add = async (questions, id) => {
     
     });
 } 
-
-
 /*
 Not in use
 - Get all the coding questions, which were created by the admin.
@@ -49,8 +48,6 @@ exports.displayAdmin = async() => {
 	const questions = await Program.find({});
 	return questions;
 }
-
-
 /*
 Old feature
 - Get the coding questions of the specify examID, which were created by the admin.
@@ -269,16 +266,16 @@ exports.evaluate = async (examID, questions,question, userID,show) => {
                 testcaseOutput.push({
                     status: 'correct',
                     number: questionno,
-	                input: input,
-                    output: codeOutput,
-                    expect: output,
+	                // input: input,
+                    // output: codeOutput,
+                    // expect: output,
                     rating: ioiter.rating
                 });
             } 
             else if(codeOutput.status === "Compilation error") {
                 testcaseOutput.push({
                     status: "Compilation Error",
-                    input: input,
+                    // input: input,
                     number: questionno,
                     error: codeOutput.error,
                 })
@@ -286,10 +283,10 @@ exports.evaluate = async (examID, questions,question, userID,show) => {
             else {
                 testcaseOutput.push({
                     status: 'testcase fail',
-                    input: input,
+                    // input: input,
                     number: questionno,
-                    output: codeOutput,
-                    expect: output,
+                    // output: codeOutput,
+                    // expect: output,
                     rating: ioiter.rating
                 });
             }
@@ -299,17 +296,17 @@ exports.evaluate = async (examID, questions,question, userID,show) => {
             if (codeOutput == output) {
                 testcaseOutput.push({
                     status: 'correct',
-                    input: input,
+                    // input: input,
                     number: questionno,
-                    output: codeOutput,
-                    expect: output,
+                    // output: codeOutput,
+                    // expect: output,
                     rating: ioiter.rating
                 });
             }
             else if(codeOutput.status === "Compilation error") {
                 testcaseOutput.push({
                     status: "Compilation Error",
-                    input: input,
+                    // input: input,
                     number: questionno,
                     error: codeOutput.error,
                 })
@@ -317,10 +314,10 @@ exports.evaluate = async (examID, questions,question, userID,show) => {
             else {
                 testcaseOutput.push({
                     status: 'testcase fail',
-                    input: input,
+                    // input: input,
                     number: questionno,
-                    output: codeOutput,
-                    expect: output,
+                    // output: codeOutput,
+                    // expect: output,
                     rating: ioiter.rating
                 });
             }
@@ -330,30 +327,30 @@ exports.evaluate = async (examID, questions,question, userID,show) => {
             if (codeOutput == output) {
                 testcaseOutput.push({
                     status: 'correct',
-                    input: input,
+                    // input: input,
                     number: questionno,
-                    output: codeOutput,
-                    expect: output,
+                    // output: codeOutput,
+                    // expect: output,
                     rating: ioiter.rating
                 });
             } 
             else if(codeOutput.status === "Compilation error") {
                 testcaseOutput.push({
                     status: "Compilation Error",
-                    input: input,
+                    // input: input,
                     number: questionno,
                     error: codeOutput.error,
-                    expect: output,
+                    // expect: output,
                     rating: ioiter.rating
                 })
             }
             else {
                 testcaseOutput.push({
                     status: 'testcase fail',
-                    input: input,
+                    // input: input,
                     number: questionno,
-                    output: codeOutput,
-                    expect: output,
+                    // output: codeOutput,
+                    // expect: output,
                     rating: ioiter.rating
                 });
             }            
@@ -363,17 +360,17 @@ exports.evaluate = async (examID, questions,question, userID,show) => {
             if (codeOutput == output) {
                 testcaseOutput.push({
                     status: 'correct',
-                    input: input,
+                    // input: input,
                     number: questionno,
-                    output: codeOutput,
-                    expect: output,
+                    // output: codeOutput,
+                    // expect: output,
                     rating: ioiter.rating
                 });
             } 
             else if(codeOutput.status === "Compilation error") {
                 testcaseOutput.push({
                     status: "Compilation Error",
-                    input: input,
+                    // input: input,
                     number: questionno,
                     error: codeOutput.error,
                     
@@ -382,10 +379,10 @@ exports.evaluate = async (examID, questions,question, userID,show) => {
             else {
                 testcaseOutput.push({
                     status: 'testcase fail',
-                    input: input,
+                    // input: input,
                     number: questionno,
-                    output: codeOutput,
-                    expect: output,
+                    // output: codeOutput,
+                    // expect: output,
                     rating: ioiter.rating
                 });
             }            

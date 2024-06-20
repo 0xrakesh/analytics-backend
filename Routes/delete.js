@@ -6,7 +6,18 @@ const Event = require("../Schema/techevent");
 const Department = require("../Schema/department");
 const College = require("../Schema/college")
 const Section = require("../Schema/sections")
+const Admin = require("../Schema/admin")
 
+
+exports.admin = async(req,res) => {
+    const {userID} = req.params;
+
+    // Delete the user
+    await Admin.findOneAndDelete({_id:userID})
+    .catch(() => {return res.json({status:"Invalid User ID."})})
+
+    return res.json({status:"User deleted."});
+}
 /*
 - Delete Request.
 - Delete the allocated exam for the students.

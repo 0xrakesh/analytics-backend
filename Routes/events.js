@@ -9,6 +9,7 @@ const CodeDB = require("../Schema/programming");
 const Section = require("../Schema/sections")
 const Performance = require("../Schema/performance")
 const secret = process.env.secret;
+const User = require('../Schema/user');
 // Websocket api
 exports.listout = async () => {
     var exams = await Event.find({},{questions:0})
@@ -223,6 +224,9 @@ exports.new = async (req,res) => {
 
 }
 
+
+
+
 /*
 [ Not in use ]
 */
@@ -269,13 +273,15 @@ for (const row of data) {
   io: [
     {
       input: row.input,
-      output: row.output
+      output: row.output,
+      descryption:row.descryption
     }
   ],
   testcase: [
 	{
 		input: row.tinput,
 		output: row.toutput,
+        descryption:row.descryption
 	}
 ],
   rating: row.rating
@@ -321,6 +327,9 @@ exports.examof = async (req,res) => {
     const {examID} = req.params;
 
     const exam = await Event.findOne({_id:examID});
+    if(!exam) {
+        return res.json({status:"Exam not found"});
+    }
     const question = await Promise.all(
         (exam.sections).map(async (section) => {
             const sec = await Section.findOne({_id:section});
@@ -350,41 +359,86 @@ exports.examof = async (req,res) => {
         point: exam.overallRating
     });
 }
-
-
-
 /* 
 - Get the exam detail
 - Not the question
 - Just the start, time and type of exam.
 */
-exports.examDetail = async (req,res) => {
-    const {examID} = req.params;
+exports.examDetail = async (req, res) => {
+    try {
+        const { examID } = req.params;
+        const exam = await Event.findOne({ _id: examID });
 
-    const exam = await Event.findOne({_id:examID});
+        if (!exam) {
+            return res.status(404).json({ error: 'Exam not found' });
+        }
 
-    const college = await College.findOne({_id:exam.college});
-    const department = await Department.findOne({_id:exam.department})
+        const college = await College.findOne({ _id: exam.college });
 
-    const students = await Student.find({ college: exam.college, department: exam.department }, { __v: 0,department:0,college:0, username: 0, password: 0, role: 0,image:0 }).sort({ name: 'asc' });
-    
-    const student = await scoreof(examID, students);
+        if (!college) {
+            return res.status(404).json({ error: 'College not found' });
+        }
 
-    return res.json({
-        title:exam.title,
-        college: college.college,
-        department: department.department,
-        year: department.year,
-        semester: department.semester,
-        section: department.section,
-        date: formatDateWithMonthAndTime(exam.date).split(',')[0],
-        start: formatDateTime(exam.start),
-        end: formatDateTime(exam.end),
-        status:getTimeStatus(exam.start,exam.end),
-	    category: exam.exam,
-        students: student,
-        point:exam.overallRating
-    });
+        if (!Array.isArray(exam.department) || exam.department.length === 0) {
+            return res.status(404).json({ error: 'Departments not found' });
+        }
+
+        const departments = await Department.find({ _id: { $in: exam.department } });
+
+        if (!departments.length) {
+            return res.status(404).json({ error: 'No departments found' });
+        }
+
+        console.log('Fetched Departments:', departments);
+
+        const studentPromises = departments.map(async (department) => {
+            console.log(`Fetching students for department ID: ${department._id} and college ID: ${exam.college}`);
+
+            // Detailed logging before query
+            console.log(`Querying User collection with college ID: ${exam.college} and department ID: ${department._id}`);
+
+            const students = await User.find(
+                { college: exam.college, department: department._id },
+                { __v: 0, department: 0, college: 0, username: 0, password: 0, role: 0, image: 0 }
+            ).sort({ name: 'asc' });
+
+            console.log(`Students for department ${department._id}:`, students);
+
+            if (students.length === 0) {
+                console.warn(`No students found for department ID: ${department._id} and college ID: ${exam.college}`);
+            }
+
+            return scoreof(examID, students);
+        });
+
+        const students = await Promise.all(studentPromises);
+
+        console.log('Students:', students);
+
+        return res.json({
+            title: exam.title,
+            college: college.college,
+            department: departments.map(department => ({
+                _id: department._id,
+                college: department.college,
+                department: department.department,
+                year: department.year,
+                semester: department.semester,
+                section: department.section,
+                __v: department.__v
+            })),
+            date: formatDateWithMonthAndTime(exam.date).split(',')[0],
+            start: formatDateTime(exam.start),
+            end: formatDateTime(exam.end),
+            status: getTimeStatus(exam.start, exam.end),
+            category: exam.exam,
+            students: students.flat(),
+            point: exam.overallRating
+        });
+    } catch (error) {
+        console.error('Error fetching exam details:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
 };
 
 /*

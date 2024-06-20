@@ -206,6 +206,7 @@ exports.login = async (req,res) => {
         }
         else if( await bcrypt.compare(password, user.password)) {
             var token = jwt.sign({
+		id:user._id,
        		name: user.name,
 	         username: user.username,
 	        role: user.role
@@ -385,3 +386,5 @@ exports.logout = async(req,res) => {
         return res.status(401).send("Unauthorized Access");
     }
 }
+
+

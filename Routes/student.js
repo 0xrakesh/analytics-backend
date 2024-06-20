@@ -191,7 +191,8 @@ async function UpdateScoreBoard(student,examID,sectionID,category,overall,obtain
     if(!dept) {
         return res.json({status:"Department ID not found"})
     }
-    const existSB = await ScoreBoard.findOne({studentid:student._id});
+    console.log(dept,colg)
+    const existSB = await ScoreBoard.findOne({studentid:student._id, exams:{$elemMatch:{examID}}});
     if(!existSB) {
         const scoreboard = await ScoreBoard({
             studentid: student._id,
@@ -204,8 +205,8 @@ async function UpdateScoreBoard(student,examID,sectionID,category,overall,obtain
             college: colg._id, 
             collegeName: colg.name,
             exams: [{
-                examid:examID,
-                sectionID: sectionID,
+                examid:new mongoose.Schema.Types.ObjectId(examID),
+                sectionID: new mongoose.Schema.Types.ObjectId(sectionID),
                 category:category, 
                 overall:overall,
                 obtain: obtain
@@ -213,7 +214,7 @@ async function UpdateScoreBoard(student,examID,sectionID,category,overall,obtain
             scores: obtain
         });
     
-        await scoreboard.save().catch(() => {return res.json({status:"Something went wrong on save the scoreboard. Line 215"})})
+        await scoreboard.save().catch((e)=>{console.log(e)})
     
         let average = (obtain/overall)*100
         let rankPos = average >= 80 ? "Developer+" : (average <80 && average>=60) ? "Developer" : (average <60 && average>=40) ? "Dev" : "Junior dev"
@@ -377,7 +378,7 @@ exports.examDetail = async (req,res) => {
 exports.examStart = async (req,res) => {
     const { examID,sectionID } = req.params;
     var exam = await Exam.findOne({_id: examID});
-    var section = await Section.findOne({_id:sectionID},{'questions.answer':0})
+    var section = await Section.findOne({_id:sectionID},{'questions.answer':0, 'questions.testcase':0})
     if(!exam || !section) {
         return res.json({status:"No exam found."})
     }
@@ -393,7 +394,7 @@ exports.examStart = async (req,res) => {
         loginCreate.save();
     }
 
-    const Attended = await Performance.findOne({studentid:userID,examid:examID})
+    const Attended = await Performance.findOne({studentid:userID,examid:examID,section:sectionID})
     if(Attended && Attended.category === "mcq") {
             return res.json({status:"Already attended this exam"})
     }
@@ -415,7 +416,7 @@ exports.examStart = async (req,res) => {
                 if(Attended && (Attended.category === "coding" || Attended.category === "both")) {
                     let questionsArray = new Array();
                     var attendedSection = Attended.score;
-                    let sec = await Scoring.findOne({_id:attendedSection[sectionID], category:'coding', sectionid:sectionID})
+                    let sec = await Scoring.findOne({_id:attendedSection[sectionID],studendid:userID, category:'coding', sectionid:sectionID})
                     var questions = sec.questions;
                     var questions = sec.questions;
                     var qns = section.questions;
@@ -448,17 +449,22 @@ exports.examStart = async (req,res) => {
             else {
                 if(Attended && (Attended.category === "coding" || Attended.category === "both")) {
                     let questionsArray = new Array();
-                    var attendedSection = Attended.sections;
-                    for(let sect of attendedSection) {
-                        let sec = await Scoring.findOne({_id:sect,category: 'coding', sectionid: sectionID})
+                    let attendArray = new Array();
+                    let scores = Attended.score;
+                    scores = scores?.[0];
+                    console.log(scores);
+                        let sec = await Scoring.findOne({_id:scores,category: 'coding', sectionid: sectionID,studentid:userID})
                         var questions = sec?.questions;
                         var qns = section?.questions;
+                        console.log(questions, qns);
                         for(let qn of qns ) {
                             if(!questions.includes(qn.number)) {
                                 questionsArray.push(qn)
                             }
+                            else {
+                                attendArray.push(qn);
+                            }
                         }
-                    }
                     // Filter the questions first:
                     
                     const sectionJson = {
@@ -466,7 +472,8 @@ exports.examStart = async (req,res) => {
                         name: section?.name,
                         category: section?.category,
                         time: section?.time,
-                        questions: questionsArray,
+                        unattended: questionsArray,
+                        attended: attendArray
                     }
                     return res.json({section: sectionJson, exam: exam, timing:parseInt((new Date().getTime() - new Date(timerExist.startTime).getTime()) / 60000)})
                 }
@@ -490,7 +497,7 @@ exports.examEval = async(req,res) => {
     var section = await Section.findOne({_id:sectionID})
     var secQn = section.questions;
     const {questions} = req.body;
-
+    console.log(questions);
     const userID = await profileID(req.headers.authorization);
     const user = await profile(userID)
 
@@ -500,9 +507,9 @@ exports.examEval = async(req,res) => {
     }
     var timeLeft = ((new Date().getTime() - new Date(timerExist.startTime).getTime()) / 60000); 
     timeLeft = timeLeft < 0 ? Math.abs(timeLeft) : timeLeft;
-    let performanceOfStudent = await Performance.findOne({examid:examID,sections: { $elemMatch: { $eq: sectionID}}});
+    let performanceOfStudent = await Performance.findOne({examid:examID,studentid:userID,section: sectionID});
     if(performanceOfStudent !== null && section.category === "mcq") {
-        let result = await Scoring.findOne({_id: performanceOfStudent.score[sectionID]})
+        let result = await Scoring.findOne({_id: performanceOfStudent.score[sectionID],studentid:userID})
         return res.json({status:"You have been already attended this exam.", code: 402,result:result})
     }
 
@@ -523,13 +530,14 @@ exports.examEval = async(req,res) => {
             for(let qn of secQn) {
 
                 // If number of question of both equal then check for answer of it
-                if(question.number === qn.number) {
-                    if(question.answer === qn.answer) {
+            if(question.number === qn.number) {
+			let option = qn.answer;
+                    if(question.answer === qn.options[option]) {
                         rating += qn.rating;
                         mcqAnalysis.push({
                             number: question.number,
                             choosen: question.answer,
-                            correct: qn.answer,
+                            correct: qn.options[option],
                             status: true
                         })
                     }
@@ -537,7 +545,7 @@ exports.examEval = async(req,res) => {
                         mcqAnalysis.push({
                             number: question.number,
                             choose: question.answer,
-                            correct: qn.answer,
+                            correct: qn.options[option],
                             status: false
                         })
                     }
@@ -549,6 +557,7 @@ exports.examEval = async(req,res) => {
 
         let newScore = await Scoring({
             sectionid: sectionID,
+	        studentid: userID,
             category: section.category,
             points: rating,
             overPoint: overPoint,
@@ -557,12 +566,13 @@ exports.examEval = async(req,res) => {
             performance: mcqAnalysis
 
         });
+
         await newScore.save().then(async (doc) => {
             let newPerformance = await Performance({
                 studentid: userID,
                 examid: examID,
-                sections: [sectionID],
-                score: { [sectionID] : doc._id},
+                section: sectionID,
+                score: doc._id,
                 category: exam.category,
                 points: overPoint,
                 obtainpoint: rating,
@@ -613,9 +623,10 @@ exports.examSubmit = async(req,res) => {
     }
     var timeLeft = ((new Date().getTime() - new Date(timerExist.startTime).getTime()) / 60000); 
     timeLeft = timeLeft < 0 ? Math.abs(timeLeft) : timeLeft;
-    let performanceOfStudent = await Performance.findOne({examid:examID,sections: { $elemMatch: { $eq: sectionID}}});
+    let performanceOfStudent = await Performance.findOne({examid:examID,studentid:userID,section: sectionID});
+
     if(performanceOfStudent !== null && section.category === "mcq") {
-        let result = await Scoring.findOne({_id: performanceOfStudent.score[sectionID]})
+        let result = await Scoring.findOne({_id: performanceOfStudent.score[sectionID],studentid:userID})
         return res.json({status:"You have been already attended this exam.", code: 402,result:result})
     }
 
@@ -651,7 +662,7 @@ exports.examSubmit = async(req,res) => {
 
         testcase = testcase[0]
 
-        testcase.map((qn,item) => {
+        testcase?.map((qn,item) => {
             if(qn.status === "correct") {
                 rating += qn.rating
             }
@@ -667,10 +678,11 @@ exports.examSubmit = async(req,res) => {
             testcase: testcase
         }
 
-        let studentScore = await Scoring.findOne({sectionid:sectionID, category: section.category});
+        let studentScore = await Scoring.findOne({sectionid:sectionID,studentid:userID, category: section.category});
         if(!studentScore) {
             let newScore = await Scoring({
                 sectionid: sectionID,
+                studentid: userID,
                 category: section.category,
                 points: rating,
                 overPoint: overPoint,
@@ -681,13 +693,13 @@ exports.examSubmit = async(req,res) => {
 
             await newScore.save().then(async (doc) => {
 
-                let tmp = await Performance.findOne({examid:examID, studentid: userID, sections: {$elemMatch: {$nin : sectionID}}})
+                let tmp = await Performance.findOne({examid:examID, studentid: userID, section:sectionID })
                 if(!tmp){
                     let newPerformance = await Performance({
                         studentid: userID,
                         examid: examID,
-                        sections: [sectionID],
-                        score: { [sectionID] : doc._id},
+                        section: sectionID,
+                        score: doc._id,
                         category: exam.category,
                         points: overPoint,
                         obtainpoint: rating,
@@ -702,7 +714,7 @@ exports.examSubmit = async(req,res) => {
                     })
                 }
                 else {
-                    await Performance.findOneAndUpdate({examid:examID, studentid:userID}, {$push: { sections: sectionID, score: {[sectionID]:doc._id}}, $inc: {points: overPoint, obtainpoint: rating}}, {new: true})
+                    await Performance.findOneAndUpdate({examid:examID, studentid:userID,section:sectionID}, {score:doc._id, $inc: {points: overPoint, obtainpoint: rating}}, {new: true})
                     let sec = await Section.findOne({_id: sectionID},{questions:0})
                     UpdateScoreBoard(user,examID,sectionID,section.category,overPoint,rating)
                     return res.json({sectionID: sectionID, examID: examID, section: sec,overPoint:overPoint, obtainPoint: rating, timetaken:timeLeft,result: result, testcase : testcase,code:200})
@@ -718,12 +730,13 @@ exports.examSubmit = async(req,res) => {
         }
         else {
             if(studentScore.questions.includes(questions.number)){
-                return res.json({status:"You have been already submit it", sectionID:sectionID, examID:examID, sectionResult: studentScore})
+                return res.json({status:"You have been already submit it!!!", sectionID:sectionID, examID:examID, sectionResult: studentScore})
             }
-            let updateScore = await Scoring.findOneAndUpdate({sectionid:sectionID,category:section.category}, { $push: {questions: questions.number, performance:studentPerformance}})
+            await Scoring.findOneAndUpdate({sectionid:sectionID,category:section.category,studentid:userID}, { $push: {questions: questions.number, performance:studentPerformance}, $inc: {overPoint:overPoint,points:rating}})
             console.log(rating,overPoint)
-            let updatePerfo = await Performance.findOneAndUpdate({studentid:userID,examid:examID,sections: { $elemMatch : {$eq: sectionID}}}, {$inc: {points: overPoint, obtainpoint: rating}},{new: true})
+            await Performance.findOneAndUpdate({studentid:userID,examid:examID,section: sectionID}, {$inc: {points: overPoint, obtainpoint: rating}},{new: true})
             let sec = await Section.findOne({_id: sectionID},{questions:0})
+            UpdateScoreBoard(user,examID,sectionID,section.category,overPoint,rating)
             return res.json({sectionID: sectionID, examID: examID, section: sec,overPoint:overPoint, obtainPoint: rating, timetaken:timeLeft,result: result, testcase : testcase,code:200})
         }
     }
@@ -739,6 +752,9 @@ exports.examAnswer = async(req,res) => {
         return res.json({status:"Can't show the answer for this exam."})
     }
     var section = await Section.findOne({_id:sectionID})
+    if(section.show === false) {
+        return res.json({status:"Can't show the answer for this exam."})
+    }
     var secQn = section.questions;
     const perform = await Performance.find({studentid:user._id})
     if(!perform) {
@@ -747,7 +763,7 @@ exports.examAnswer = async(req,res) => {
     var scoring = 0;
     for(let each of perform) {
         for(let sec of each.score){
-            const scores = await Scoring.findOne({sectionid:sectionID,_id:sec[sectionID]})
+            const scores = await Scoring.findOne({sectionid:sectionID,studentid:userID,_id:sec[sectionID]})
             if(scores) {
                 scoring = scores;
             }
@@ -805,7 +821,7 @@ exports.scoreboard = async (req, res) => {
         register: stud.register,
 	    rollno: stud.rollno,
         name: stud.name,
-        college: clg.collge,
+        college: clg.college,
         department: deptname.department,
         year: deptname.year,
         semester: deptname.semester,
@@ -818,7 +834,59 @@ exports.scoreboard = async (req, res) => {
   
     return res.json({ score: std });
   };
+// Admin scoreboard endpoint to view all students' scores
+exports.adminScoreboard = async (req, res) => {
+    try {
+        // Decode the token and extract user information
+        const token = req.headers.authorization.split(' ')[1];
+        const decodedToken = jwt.decode(token);
+        console.log('Decoded Token:', decodedToken); // Debugging log
 
+        // Ensure user has admin or superadmin role
+        if (decodedToken.role !== 'admin' && decodedToken.role !== 'superadmin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Fetch all students
+        const students = await Student.find({});
+        const studentDetailsList = [];
+
+        for (const student of students) {
+            const college = await College.findOne({ _id: student.college });
+            const department = await Department.findOne({ _id: student.department });
+
+            // Check if the college and department exist
+            if (!college) {
+                console.warn(`College not found for student ID: ${student._id}`);
+                continue; // Skip this student if the college is not found
+            }
+            if (!department) {
+                console.warn(`Department not found for student ID: ${student._id}`);
+                continue; // Skip this student if the department is not found
+            }
+
+            const studentDetails = {
+                studentid: student._id,
+                register: student.register,
+                rollno: student.rollno,
+                name: student.name,
+                college: college.college,
+                department: department.department, 
+                year: department.year,
+                semester: department.semester,
+                section: department.section,
+                score: student.OAScore,
+            };
+
+            studentDetailsList.push(studentDetails);
+        }
+
+        return res.json({ score: studentDetailsList });
+    } catch (error) {
+        console.error('Error fetching scoreboard details:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
 
 /*
 Evaluate the question.
@@ -1181,4 +1249,3 @@ exports.timeout = async(req,res) => {
 		return res.json({status:"timeout"});
 	}
 }
-
