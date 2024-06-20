@@ -752,8 +752,8 @@ exports.examAnswer = async(req,res) => {
         return res.json({status:"Can't show the answer for this exam."})
     }
     var section = await Section.findOne({_id:sectionID})
-    if(section.show === false) {
-        return res.json({status:"Can't show the answer for this exam."})
+    if(section.show === false && new Date() < exam.end) {
+        return res.json({status:"You can't see answer for now. Check it after the exam"})
     }
     var secQn = section.questions;
     const perform = await Performance.find({studentid:user._id})
