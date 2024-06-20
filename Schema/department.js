@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const Schema = {
     college: {type: Object},
-    department: {type: String},
+    department: {type: Object},
     year: {type: Number},
     semester: {type: Number},
     section: {type:String},

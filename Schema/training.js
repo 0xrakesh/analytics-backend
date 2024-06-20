@@ -9,6 +9,7 @@ const ProgramTaskSchema = mongoose.Schema({
     outputDescription: {type:String},
     io: {type: Array},
     testcase: {type: Array},
+    testcaseDescription: {type: String},
     submission: {type: Number},
 })
 

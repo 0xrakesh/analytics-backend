@@ -3,7 +3,7 @@ const mongoose = require("mongoose")
 const Schema = new mongoose.Schema({
     studentid: {type: mongoose.Schema.Types.ObjectId},
     examid: {type: mongoose.Schema.Types.ObjectId},
-    sections: {type: Array},
+    section: {type: mongoose.Schema.Types.ObjectId},
     category: {type: String},
     score: {type: [Object]},
     points: {type: Number},

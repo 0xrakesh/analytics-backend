@@ -2,18 +2,16 @@ const mongoose = require('mongoose');
 
 const Schema = new mongoose.Schema({
     title: {type: String},
-    category: {type: String},
     date: {type: Date},
     start: {type: Date},
     end: {type: Date},
     duration: {type: Number},
-    sections: {type:Array, required: true},
-    department: {type:Array, required: true},
-    college: { type: mongoose.Schema.Types.ObjectId, ref: 'college' }, 
-    year: {type:Number},
+    sections: {type:mongoose.Types.ObjectId, required: true},
+    department: {type: Array},
+    college: {type: Object},
     overallRating: {type: Number},
 })
 
-const Event = new mongoose.model("exams",Schema);
+const Event = new mongoose.model("playgroundQns",Schema);
 
 module.exports = Event;

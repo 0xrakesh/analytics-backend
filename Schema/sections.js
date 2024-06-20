@@ -16,13 +16,15 @@ const coding = mongoose.Schema({
         { 
             input:[{type:Array}],
             output: {type: String},
-            rating: {type: Number}
+            rating: {type: Number},
+            description: {type: String}
         }],
     testcase: [
         {
             input: [{type:Array}],
             output:{type: String},
-            rating: {type: Number}
+            rating: {type: Number},
+            description: {type: String}
         }],
     outputRating: {type: Number},
     testcaseRating: {type: Number}
