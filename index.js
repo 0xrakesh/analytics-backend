@@ -42,9 +42,9 @@ const AD = require("./Routes/profileadmin.js")
 const AdminSettings = require("./Routes/root-settings.js")
 const SuperSettings = require("./Routes/admin-settings.js")
 const Settings = require("./Routes/settings.js")
-
-
-
+const scoreRoutes =require("./Routes/scoreboardbill.js")
+const PlaygroundQn = require("./Routes/playgroundQn.js")
+const Count = require("./Routes/countAttend.js")
 // Middleware for the cross origin resources shares.
 const app = express();
 app.use(cors({
@@ -177,6 +177,7 @@ DELETE - /event/:eventID - Delete the event.
 
 */
 app.delete("/admin/exams/:examID", auth.adminVerification, Deletion.exam);
+app.delete("/admin/admin/:userID", auth.adminVerification, Deletion.admin);
 app.delete("/admin/colleges/:collegeID", auth.adminVerification, Deletion.college);
 app.delete("/admin/colleges/:collegeID/:departmentID", auth.adminVerification, Deletion.department)
 app.delete("/admin/colleges/:collegeID/:departmentID/:userID", auth.adminVerification, Deletion.user);
@@ -306,13 +307,17 @@ GET - /events - Listout the event allocated for them.
 GET - /scoreboard - Return the scorepoint within the college level.
 */
 app.get("/student/events", auth.verification, Student.event);
-app.get("/student/scoreboard", auth.verification, Student.scoreboard);
-
+app.get("/admin/scoreboard", auth.adminVerification, scoreRoutes.scores);
+app.get("/superadmin/scoreboard", auth.superAdminVerification, scoreRoutes.superadmin);
+app.get("/student/scoreboard", auth.verification, scoreRoutes.student);
 // /*
 // POST - /contactus - Store the queries in database and view it on future.
 // */
 app.post("/contactus", (req,res) => contact.contact(req,res));
 
+
+
+app.get("/admin/exams/:examID/statistics", auth.adminVerification, Count.admin)
 
 /*
 Student Panel of Playground
@@ -334,7 +339,17 @@ app.put("/student/playground/:id", auth.verification, Play.edit);
 app.delete("/student/playground/:id", auth.verification, Play.delete);
 app.post("/student/playground/:id", auth.verification, Play.playground);
 app.post("/student/playground/run", auth.verification, Play.playground);
+// app.post("/student/playgroundqn", auth.verification, playqn.postQuestion);
+// app.get("/student/getAssignedQuestions", auth.verification, playqn.getAssignedQuestions);
 
+app.get("/admin/training", auth.adminVerification, PlaygroundQn.admin);
+app.get("/superadmin/training", auth.superAdminVerification, PlaygroundQn.superadmin);
+app.get("/student/training", auth.verification, PlaygroundQn.student);
+app.get("/student/training/:playID", auth.verification, PlaygroundQn.details);
+app.post("/admin/training/new", auth.adminVerification, PlaygroundQn.new);
+app.post("/student/training/:playgroundID/:sectionID/evaluate", auth.verification, PlaygroundQn.examEval);
+app.post("/student/training/:playgroundID/:sectionID/submit", auth.verification, PlaygroundQn.examSubmit);
+app.get("/student/training/:playgroundID/:sectionID/result", auth.verification, PlaygroundQn.getResult);
 /*
 Student Panel of Training API
 -----------------------------
