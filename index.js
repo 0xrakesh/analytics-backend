@@ -308,6 +308,11 @@ GET - /scoreboard - Return the scorepoint within the college level.
 */
 app.get("/student/events", auth.verification, Student.event);
 app.get("/admin/scoreboard", auth.adminVerification, scoreRoutes.scores);
+app.get("/admin/scoreboard/:userID/:examID", auth.adminVerification, scoreRoutes.studentOf);
+app.get("/superadmin/scoreboard/:userID/:examID", auth.superAdminVerification, scoreRoutes.studentOf);
+app.get("/student/scoreboard/:userID/:examID", auth.verification, scoreRoutes.studentOf);
+
+app.get("/student/exams/:examID/result", auth.verification, scoreRoutes.studentOf);
 app.get("/superadmin/scoreboard", auth.superAdminVerification, scoreRoutes.superadmin);
 app.get("/student/scoreboard", auth.verification, scoreRoutes.student);
 // /*
